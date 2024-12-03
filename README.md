@@ -1,1 +1,0 @@
-# ExamenPractico1_CParalela
