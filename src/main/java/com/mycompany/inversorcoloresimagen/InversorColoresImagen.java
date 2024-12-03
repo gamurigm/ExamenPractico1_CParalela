@@ -11,36 +11,53 @@ import javax.imageio.ImageIO;
 public class InversorColoresImagen {
 
     public static void main(String[] args) throws IOException {
-        File inputFile = new File("C:\\Users\\gamur\\OneDrive - UNIVERSIDAD DE LAS FUERZAS ARMADAS ESPE\\Documents\\NetBeansProjects\\InversorColoresImagen\\img\\img15.jpg");
+        
+        try{
+            File inputFile = new File("C:\\Users\\gamur\\OneDrive - UNIVERSIDAD DE LAS FUERZAS ARMADAS ESPE\\Documents\\NetBeansProjects\\InversorColoresImagen\\img\\img15.jpg");
         BufferedImage image = ImageIO.read(inputFile);
         int width = image.getWidth();
         int height = image.getHeight();
-        long inicio = System.nanoTime();
         
-        //ivertir pixel por pixel
-        for(int y=0; y < height; y++){
-            for(int x= 0; x < width; x++){
-                int rgb = image.getRGB(x, y);
-                // extraer los componentes RGB
-                int red = (rgb >> 16) & 0xFF;
-                int green = (rgb >> 8) & 0xFF;
-                int blue = rgb & 0xFF;
+        
+        System.out.println("Procesando imagen de " + width + "x" + height);
+        
+        int numeroHilos = 4; // Dividir en 4 partes
+        Thread[] hilos = new Thread[numeroHilos];
+
+        int filasPorHilo = height / numeroHilos;
+        int finFila;
+            
+        long inicio = System.nanoTime();   
+        
+        
+        for (int i = 0; i < numeroHilos; i++) {
+                int inicioFila = i * filasPorHilo;
                 
-                //invertir colores
-                int invertedRed = 255 - red;
-                int invertedGreen = 255 - green;
-                int invertedBlue = 255 -  blue;
-                //combinar
-                int invertedRGB = (invertedRed << 16 )| (invertedGreen << 8) | invertedBlue;
-                image.setRGB(x, y, invertedRGB);       
+                if(i == numeroHilos - 1){
+                    finFila = height;
+                }else{
+                    finFila = inicioFila + filasPorHilo;
+                }
+
+                hilos[i] = new Thread(new InversorThreads(image, inicioFila, finFila));
+                hilos[i].start();
             }
+
+            // Esperar a que todos los hilos terminen
+            for (Thread hilo : hilos) {
+                hilo.join();
+            }
+            
+            File outputFile = new File("imagen_invertida_paralela.jpg");
+            ImageIO.write(image, "jpg", outputFile);
+            
+            long fin = System.nanoTime();
+            
+            System.out.println("Tiempo de Ejecución Paralela: " + (fin - inicio)/ 1_000_000 + " ms");
+            
         }
-        
-        long fin = System.nanoTime();
-        
-        File outputFile = new File("imagen_invertida_paralela.jpg");
-        ImageIO.write(image, "jpg", outputFile);
-        System.out.println("Tiempo de Ejecución Paralela: " + (fin - inicio)/ 1_000_000 + " ms");
+        catch(IOException | InterruptedException e) {
+        }
                 
     }
 }
